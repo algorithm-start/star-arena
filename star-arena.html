@@ -182,7 +182,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
   font-size:clamp(16px,3vw,22px);font-weight:900;color:#fff;-webkit-text-stroke:4px rgba(60,40,10,.55);paint-order:stroke fill;letter-spacing:2px;white-space:nowrap;opacity:0;transition:opacity .2s}
 #announce.show{opacity:1;animation:annpop .4s cubic-bezier(.2,1.6,.4,1)}
 @keyframes annpop{from{transform:translateX(-50%) scale(.4)}to{transform:translateX(-50%) scale(1)}}
-#killfeed{position:absolute;top:calc(64px + env(safe-area-inset-top));left:10px;display:flex;flex-direction:column;gap:5px;pointer-events:none}
+#killfeed{position:absolute;top:calc(64px + env(safe-area-inset-top));right:10px;left:auto;display:flex;flex-direction:column;gap:5px;align-items:flex-end;pointer-events:none}
 .feed-item{display:flex;align-items:center;gap:6px;background:rgba(40,30,15,.55);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;color:#fff;animation:feedin .25s;backdrop-filter:blur(2px)}
 .feed-item i{width:8px;height:8px;border-radius:50%;flex:none}
 .feed-item .op{color:#FFD84D;font-size:11px}
@@ -222,8 +222,8 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
 @keyframes ultpulse{50%{transform:scale(1.12);filter:brightness(1.2)}}
 #btn-ult{right:4px;bottom:4px}
 #ult-pct{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:#fff;background:rgba(40,30,15,.6);padding:1px 8px;border-radius:999px;pointer-events:none}
-#equip-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;display:flex;gap:8px}
-.eqbtn{display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:14px;border:3px solid #fff;background:linear-gradient(#ffffff,#e7eef8);box-shadow:0 4px 0 rgba(0,0,0,.16);font-weight:900;font-size:12px;color:#33415c;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .08s}
+#equip-bar{position:fixed;left:10px;top:calc(58px + env(safe-area-inset-top));z-index:30;display:flex;gap:8px}
+.eqbtn{pointer-events:auto;display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:14px;border:3px solid #fff;background:linear-gradient(#ffffff,#e7eef8);box-shadow:0 4px 0 rgba(0,0,0,.16);font-weight:900;font-size:12px;color:#33415c;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .08s}
 .eqbtn:active{transform:scale(.94)}
 .eqbtn svg{width:18px;height:18px}
 .eqbtn .lv{min-width:16px;text-align:center;background:#33415c;color:#fff;border-radius:8px;padding:1px 4px;font-size:11px}
@@ -311,9 +311,9 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
   .hero-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
   #controls{transform:scale(1.1);transform-origin:bottom right}
 }
-/* 竖屏手机/平板：装备栏移到左侧竖排，避开右下技能区 */
+/* 竖屏手机/平板：装备栏移到左上角竖排，避开居中比分与右下技能区 */
 @media (orientation:portrait) and (pointer:coarse){
-  #equip-bar{left:8px;right:auto;bottom:auto;top:50%;transform:translateY(-50%);flex-direction:column;gap:6px}
+  #equip-bar{left:8px;top:calc(56px + env(safe-area-inset-top));flex-direction:column;gap:6px}
 }
 </style>
 </head>
@@ -1320,8 +1320,7 @@ function bindInput(){
   gbtn("btn-atk","atk");gbtn("btn-skill","skill");gbtn("btn-ult","ult");
   [["eq-atk","atk"],["eq-def","def"],["eq-util","util"]].forEach(([id,kind])=>{
     const el=$(id);
-    el.addEventListener("pointerdown",ev=>{ev.stopPropagation();ev.preventDefault();});
-    el.addEventListener("click",ev=>{ev.stopPropagation();AU.unlock();AU.resume();if(G.screen==="match"&&!G.paused&&G.player)buyEquip(G.player,kind);});
+    el.addEventListener("pointerdown",ev=>{ev.stopPropagation();ev.preventDefault();AU.unlock();AU.resume();if(G.screen==="match"&&!G.paused&&G.player)buyEquip(G.player,kind);});
   });
   document.addEventListener("contextmenu",ev=>{if(G.screen==="match")ev.preventDefault();});
   document.addEventListener("visibilitychange",()=>{if(document.hidden&&G.screen==="match"&&!G.over&&!G.paused)togglePause(true);});
