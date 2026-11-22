@@ -455,7 +455,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
       <li><b>防御</b>：+7% 减伤（最多 6 级）</li>
       <li><b>功能</b>：-10% 技能冷却（最多 6 级）</li>
       <li><b>加速</b>：+7% 移动速度（最多 6 级）</li>
-      <li><b>生命</b>：+60 最大生命并立即回血（最多 6 级）</li>
+      <li><b>生命</b>：随机 +100~300 最大生命并立即回血（最多 6 级）</li>
       <li>点击装备按钮，或按 <span class="kbd">1</span>~<span class="kbd">5</span> 快速购买</li>
     </ul>
     <h3>手机 / 平板操作</h3>
@@ -803,7 +803,7 @@ function buyEquip(e,kind){
   else if(kind==="def"){e.dr=Math.min(0.5,e.dr+0.07);addText(e.x,e.y-92,"防御 +7%","#4FB7FF",15);}
   else if(kind==="util"){e.cdMult=Math.max(0.55,e.cdMult*0.9);addText(e.x,e.y-92,"冷却 -10%","#5FD98F",15);}
   else if(kind==="spd"){e.spd=Math.round(e.spd*1.07);addText(e.x,e.y-92,"移速 +7%","#7C4DFF",15);}
-  else{e.maxHp+=60;e.hp+=60;addText(e.x,e.y-92,"生命 +60","#FF7A9C",15);}
+  else{const add=irand(100,300);e.maxHp+=add;e.hp+=add;addText(e.x,e.y-92,"生命 +"+add,"#FF7A9C",15);}
   e.eq[kind]++;
   ring(e.x,e.y-16,10,54,"#FFE15A",.4,6);burst(e.x,e.y-20,"#FFE15A",10,170,5,"star");
   AU.tone(660,980,.12,"triangle",.12);AU.beep(true);
