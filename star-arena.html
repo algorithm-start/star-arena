@@ -464,7 +464,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
       <li><b>生命</b>：随机 +100~300 最大生命并立即回血（最多 6 级）</li>
       <li>点击装备按钮，或按 <span class="kbd">1</span>~<span class="kbd">5</span> 快速购买</li>
     </ul>
-    <p><b>皮肤</b>：在选人界面可为英雄切换配色外观（经典 / 夜影 / 曙光），纯装饰不影响数值，选择会自动保存。</p>
+    <p><b>皮肤</b>：在选人界面可为英雄切换配色外观（经典 / 夜影 / 曙光）；部分英雄（蛋小黄·黄金战甲、蛋小蓝·深渊领主、蛋小红·赤鬼）还有<b>独立造型皮肤</b>，会更换配饰与特效光环。均为装饰，不影响数值，选择自动保存。</p>
     <h3>手机 / 平板操作</h3>
     <ul>
       <li>左半屏<b>按住拖动</b>：虚拟摇杆移动</li>
@@ -697,12 +697,18 @@ let floorCv=null;
 let EID=0;
 /* ---------------- 皮肤（配色方案） ---------------- */
 const SKINS=[{n:"经典"},{n:"夜影",t:"#232a55",dt:"#0e1230",lt:"#6a74b8",rt:"#2b2d6b",m:.5},{n:"曙光",t:"#ffd27a",dt:"#c98a2e",lt:"#fff0c8",rt:"#e0a93a",m:.45}];
+// 独立造型皮肤：为个别英雄换配饰/特效（皮肤索引 3，仅在这些英雄上出现）
+const COSTUMES={
+  0:{name:"黄金战甲",pal:{color:"#FFD24A",dark:"#B8860B",light:"#FFF0B0",rc:"#E0A93A"},aura:"#FFD24A"},
+  3:{name:"深渊领主",pal:{color:"#5A4A8A",dark:"#2A1E52",light:"#9A86D0",rc:"#6A4FB0"},aura:"#8A5CF6"},
+  5:{name:"赤鬼",pal:{color:"#E23B3B",dark:"#7A1414",light:"#FFB0A8",rc:"#B01E1E"},aura:"#FF4A3C"}
+};
 function _hex(x){x=x.replace("#","");if(x.length===3)x=x.split("").map(c=>c+c).join("");return [parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];}
 function hexMix(a,b,t){const pa=_hex(a),pb=_hex(b),c=i=>Math.round(pa[i]+(pb[i]-pa[i])*t);return "#"+((1<<24)+(c(0)<<16)+(c(1)<<8)+c(2)).toString(16).slice(1);}
 function skinPal(h,i){const s=SKINS[i];if(!s||i===0)return{color:h.color,dark:h.dark,light:h.light,rc:h.rc};
   return{color:hexMix(h.color,s.t,s.m),dark:hexMix(h.dark,s.dt,s.m),light:hexMix(h.light,s.lt,s.m*.8),rc:hexMix(h.rc,s.rt,s.m)};}
 function skinOf(hi){return (G.skins&&G.skins[hi])||0;}
-function heroFor(hi,skin){const h0=HEROES[hi];if(!skin)return h0;return Object.assign({},h0,skinPal(h0,skin));}
+function heroFor(hi,skin){const h0=HEROES[hi];if(!skin)return h0;if(skin===3)return COSTUMES[hi]?Object.assign({},h0,COSTUMES[hi].pal):h0;return Object.assign({},h0,skinPal(h0,skin));}
 
 function makeEgg(team,heroIdx,name,isPlayer,spawnIdx,skin){
   skin=skin||0;
@@ -720,7 +726,7 @@ function makeEgg(team,heroIdx,name,isPlayer,spawnIdx,skin){
     stun:0,slowT:0,speedT:0,bonusNext:false,carried:0,scale:1,moving:false,
     dmgMult:enemy?d.dmg:(isPlayer?1:.9),cdMult:enemy?d.cd:1,
     dr:0,eq:{atk:0,def:0,util:0,spd:0,hp:0},
-    clone:null,isClone:false,cloneT:0,gone:false,summoner:null,rage:0,costume:null,
+    clone:null,isClone:false,cloneT:0,gone:false,summoner:null,rage:0,costume:(skin===3&&COSTUMES[heroIdx])?COSTUMES[heroIdx]:null,
     stats:{k:0,d:0,s:0,dmg:0,heal:0},
     ai:{think:rand(0,.3),path:null,pathT:0,target:null,combat:null,strafe:Math.random()<.5?1:-1,wander:rand(0,TAU)}
   };
@@ -1407,9 +1413,9 @@ function startMatch(){
   G.pads=PADS.map(p=>({x:p.x,y:p.y,active:true,t:0}));
   G.intro=3.6;G.cdShown=0;
   genLineup();
-  const rndSkin=()=>Math.random()<.5?0:irand(1,SKINS.length-1);
-  G.lineup.blue.forEach((m,i)=>G.eggs.push(makeEgg("blue",m.h,m.name,m.player,i,m.player?skinOf(m.h):rndSkin())));
-  G.lineup.red.forEach((m,i)=>G.eggs.push(makeEgg("red",m.h,m.name,false,i,rndSkin())));
+  const aiSkin=hi=>{const r=Math.random();if(r<.5)return 0;if(r<.8)return irand(1,SKINS.length-1);return COSTUMES[hi]?3:irand(1,SKINS.length-1);};
+  G.lineup.blue.forEach((m,i)=>G.eggs.push(makeEgg("blue",m.h,m.name,m.player,i,m.player?skinOf(m.h):aiSkin(m.h))));
+  G.lineup.red.forEach((m,i)=>G.eggs.push(makeEgg("red",m.h,m.name,false,i,aiSkin(m.h))));
   G.player=G.eggs.find(e=>e.isPlayer);
   G.cam.x=G.player.x;G.cam.y=G.player.y;
   IN.atkHeld=false;IN.skillReq=null;IN.ultReq=false;IN.drag=null;IN.joy={id:null,bx:0,by:0,dx:0,dy:0};
@@ -2437,9 +2443,42 @@ function drawEggBody(c,e,t,portrait){
   drawAccessory(c,h,e,t);
   c.restore();
 }
+function drawCostume(c,e,hi,t){
+  const col=e.hero.color,dark=e.hero.dark,light=e.hero.light;
+  if(hi===0){
+    c.fillStyle=dark;rr(c,-16,-24,32,10,4);c.fill();
+    c.fillStyle=col;c.beginPath();c.arc(0,-22,16,Math.PI,0);c.closePath();c.fill();
+    c.fillStyle=light;rr(c,-3,-30,6,10,2);c.fill();
+    c.fillStyle=col;c.beginPath();c.arc(-16,-12,7,0,TAU);c.fill();c.beginPath();c.arc(16,-12,7,0,TAU);c.fill();
+    c.save();c.translate(18,2);c.rotate(e.attackT>0?-1.2:-.3);
+    c.fillStyle="#F5E9C8";rr(c,-2,-34,4,30,2);c.fill();
+    c.fillStyle=col;c.beginPath();c.moveTo(0,-38);c.lineTo(-4,-30);c.lineTo(4,-30);c.closePath();c.fill();
+    c.fillStyle=dark;rr(c,-6,-6,12,4,2);c.fill();c.restore();
+  }else if(hi===3){
+    c.fillStyle=dark;
+    c.beginPath();c.moveTo(-16,-24);c.lineTo(-12,-38);c.lineTo(-6,-26);c.lineTo(0,-40);c.lineTo(6,-26);c.lineTo(12,-38);c.lineTo(16,-24);c.closePath();c.fill();
+    c.strokeStyle=col;c.lineWidth=3;
+    c.beginPath();c.moveTo(-14,-24);c.quadraticCurveTo(-24,-30,-22,-42);c.stroke();
+    c.beginPath();c.moveTo(14,-24);c.quadraticCurveTo(24,-30,22,-42);c.stroke();
+    const pl=.5+Math.sin(t*5)*.3;c.fillStyle="rgba(138,92,246,"+(.3+pl*.3)+")";c.beginPath();c.arc(18,4,9+pl*2,0,TAU);c.fill();
+    c.fillStyle="#8A5CF6";c.beginPath();c.arc(18,4,5,0,TAU);c.fill();
+  }else if(hi===5){
+    c.fillStyle="#F0E6D2";
+    c.beginPath();c.moveTo(-11,-26);c.quadraticCurveTo(-18,-38,-9,-40);c.quadraticCurveTo(-10,-31,-6,-27);c.closePath();c.fill();
+    c.beginPath();c.moveTo(11,-26);c.quadraticCurveTo(18,-38,9,-40);c.quadraticCurveTo(10,-31,6,-27);c.closePath();c.fill();
+    c.strokeStyle="#B01E1E";c.lineWidth=2.4;
+    c.beginPath();c.moveTo(-13,-14);c.lineTo(-9,-10);c.stroke();c.beginPath();c.moveTo(13,-14);c.lineTo(9,-10);c.stroke();
+    c.save();c.translate(18,2);c.rotate(e.attackT>0?-1.25:-.35);
+    c.fillStyle="#5A3A1E";rr(c,-3,-30,6,34,3);c.fill();
+    c.fillStyle="#3A2A16";for(let i=0;i<4;i++){c.beginPath();c.arc(0,-26+i*7,4.2,0,TAU);c.fill();}
+    c.fillStyle="#F0E6D2";for(let i=0;i<4;i++){c.beginPath();c.arc(4,-26+i*7,1.6,0,TAU);c.fill();c.beginPath();c.arc(-4,-24+i*7,1.6,0,TAU);c.fill();}
+    c.restore();
+  }
+}
 function drawAccessory(c,h,e,t){
   const hi=(e&&e.hi!=null)?e.hi:HEROES.indexOf(h);
   c.lineCap="round";
+  if(e.costume){drawCostume(c,e,hi,t);return;}
   if(hi===0){
     c.strokeStyle=h.dark;c.lineWidth=3.4;
     c.beginPath();c.moveTo(0,-26);c.quadraticCurveTo(2,-36,9,-35);c.quadraticCurveTo(14,-34,11,-29);c.stroke();
@@ -2642,6 +2681,7 @@ function drawEgg(e,t){
     ctx.font="800 11px 'Yuanti SC','PingFang SC',sans-serif";ctx.textAlign="center";ctx.fillStyle="#9B6BFF";ctx.fillText("分身",e.x,e.y-78*e.scale-zz);}
   if(e.rage>0){const rp=.5+Math.sin(t*12)*.3;ctx.fillStyle="rgba(255,90,60,"+(.18*rp)+")";ctx.beginPath();ctx.arc(e.x,e.y-24*e.scale-zz,46*e.scale,0,TAU);ctx.fill();
     ctx.strokeStyle="rgba(127,184,74,"+(.6*rp)+")";ctx.lineWidth=3;ctx.beginPath();ctx.arc(e.x,e.y-24*e.scale-zz,40*e.scale+Math.sin(t*10)*3,0,TAU);ctx.stroke();}
+  if(e.costume){const cp=.5+Math.sin(t*6)*.3;ctx.strokeStyle="rgba("+_hex(e.costume.aura).join(",")+","+(.35+cp*.3)+")";ctx.lineWidth=3;ctx.setLineDash([4,6]);ctx.lineDashOffset=-t*30;ctx.beginPath();ctx.arc(e.x,e.y-24*e.scale-zz,34*e.scale,0,TAU);ctx.stroke();ctx.setLineDash([]);}
   ctx.save();ctx.translate(e.x,e.y-26*e.scale-zz);
   if(e.spin)ctx.rotate(t*22);
   if(e.dash&&e.dash.type==="roll")ctx.rotate(e.dash.t*40);
@@ -2862,6 +2902,7 @@ function buildSelect(){
     '<div class="skill-item"><span class="tag" style="background:#FF4F93">必杀</span><div><b>'+h.ult.name+'</b><p>'+h.ult.desc+'</p></div></div>'+
     '<div class="skin-row"><span class="tag" style="background:#7C4DFF">皮肤</span><div class="swatches">'+
       SKINS.map((s,i)=>{const pal=skinPal(h,i);return '<button class="sw'+(skinOf(G.heroIdx)===i?" on":"")+'" data-s="'+i+'" style="background:linear-gradient(135deg,'+pal.color+','+pal.dark+')"><span>'+s.n+'</span></button>';}).join("")+
+      (COSTUMES[G.heroIdx]?'<button class="sw'+(skinOf(G.heroIdx)===3?" on":"")+'" data-s="3" style="background:linear-gradient(135deg,'+COSTUMES[G.heroIdx].pal.color+','+COSTUMES[G.heroIdx].aura+')"><span>'+COSTUMES[G.heroIdx].name+'</span></button>':"")+
     '</div></div>'+
     '</div>';
   document.querySelectorAll("#hero-detail .sw").forEach(b=>b.onclick=()=>{const i=+b.dataset.s;G.skins[G.heroIdx]=i;store.set("skins",G.skins);AU.click();buildSelect();});
