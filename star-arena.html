@@ -449,7 +449,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
     <h3>获胜目标</h3>
     <p>中央的<b>星能矿井</b>会不断喷出星星，击败敌人也会掉落星星。拾取星星携带在身上，<b>率先集齐 10 颗并守住 15 秒</b>即可获胜！时间结束时星星多的队伍获胜。被击败会掉落身上所有星星。</p>
     <h3>装备（星星购买）</h3>
-    <p>底部装备栏可用<b>星星</b>购买强化，每件花费 <b>2 颗星星</b>（会减少你身上的星星，需要在"抢分"与"变强"之间取舍）。阵亡后装备效果仍保留。</p>
+    <p>左上角装备栏可用<b>星星</b>购买强化：<b>第一件免费</b>，之后每件花费 <b>2 颗星星</b>（会减少你身上的星星，需要在"抢分"与"变强"之间取舍）。阵亡后装备效果仍保留。</p>
     <ul>
       <li><b>攻击</b>：+12% 物理伤害（最多 8 级）</li>
       <li><b>防御</b>：+7% 减伤（最多 6 级）</li>
@@ -797,14 +797,17 @@ function aoeHeal(x,y,r,amt,team,src){for(const e of G.eggs){if(e.team!==team||e.
 const EQ_COST=2,EQ_CAP={atk:8,def:6,util:6,spd:6,hp:6};
 function buyEquip(e,kind){
   if(G.screen!=="match"||G.over||!e||e.dead||e.stun>0)return false;
-  if(e.carried<EQ_COST||e.eq[kind]>=EQ_CAP[kind])return false;
-  e.carried-=EQ_COST;
+  if(e.eq[kind]>=EQ_CAP[kind])return false;
+  const total=e.eq.atk+e.eq.def+e.eq.util+e.eq.spd+e.eq.hp,free=total===0;
+  if(!free&&e.carried<EQ_COST)return false;
+  if(!free)e.carried-=EQ_COST;
   if(kind==="atk"){e.dmgMult+=0.12;addText(e.x,e.y-92,"攻击 +12%","#FF6B5A",15);}
   else if(kind==="def"){e.dr=Math.min(0.5,e.dr+0.07);addText(e.x,e.y-92,"防御 +7%","#4FB7FF",15);}
   else if(kind==="util"){e.cdMult=Math.max(0.55,e.cdMult*0.9);addText(e.x,e.y-92,"冷却 -10%","#5FD98F",15);}
   else if(kind==="spd"){e.spd=Math.round(e.spd*1.07);addText(e.x,e.y-92,"移速 +7%","#7C4DFF",15);}
   else{const add=irand(100,300);e.maxHp+=add;e.hp+=add;addText(e.x,e.y-92,"生命 +"+add,"#FF7A9C",15);}
   e.eq[kind]++;
+  if(free)addText(e.x,e.y-116,"首件免费!","#FFE15A",16);
   ring(e.x,e.y-16,10,54,"#FFE15A",.4,6);burst(e.x,e.y-20,"#FFE15A",10,170,5,"star");
   AU.tone(660,980,.12,"triangle",.12);AU.beep(true);
   if(e.isPlayer){bumpPill("blue");syncHud();}
@@ -2700,10 +2703,11 @@ function syncHud(){
     uw.classList.toggle("ready",p.charge>=100);
     $("ult-pct").textContent=p.charge>=100?"就绪!":Math.ceil((100-p.charge)/100*ULT_CD)+"s";
     $("btn-ult").classList.toggle("disabled",p.charge<100);
-    const eq=p.eq;
+    const eq=p.eq,eqTotal=eq.atk+eq.def+eq.util+eq.spd+eq.hp,firstFree=eqTotal===0;
     for(const pair of [["eq-atk","atk"],["eq-def","def"],["eq-util","util"],["eq-spd","spd"],["eq-hp","hp"]]){
       const el=$(pair[0]);el.querySelector(".lv").textContent=eq[pair[1]];
-      const afford=p.carried>=EQ_COST&&eq[pair[1]]<EQ_CAP[pair[1]]&&!p.dead;
+      el.querySelector(".cost").textContent=firstFree?"免费":"2★";
+      const afford=(firstFree||p.carried>=EQ_COST)&&eq[pair[1]]<EQ_CAP[pair[1]]&&!p.dead;
       el.classList.toggle("disabled",!afford);el.classList.toggle("afford",afford);
     }
   }
