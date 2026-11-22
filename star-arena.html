@@ -104,6 +104,12 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
 .skill-item .tag{flex:none;font-size:11px;font-weight:800;color:#fff;border-radius:8px;padding:3px 8px;margin-top:2px}
 .skill-item b{font-size:14px}
 .skill-item p{font-size:12px;color:var(--ink2);font-weight:600;line-height:1.45}
+.skin-row{display:flex;gap:10px;align-items:center;background:#FFF8E4;border:2px solid #FFE9A8;border-radius:14px;padding:8px 10px;margin-top:2px}
+.skin-row .tag{flex:none;font-size:11px;font-weight:800;color:#fff;border-radius:8px;padding:3px 8px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{border:2px solid #fff;border-radius:12px;padding:6px 12px;color:#fff;font-weight:800;font-size:12px;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:0 3px 0 rgba(0,0,0,.15);opacity:.8;transition:transform .08s,opacity .1s}
+.sw:active{transform:scale(.95)}
+.sw.on{border-color:#FFE15A;box-shadow:0 0 0 2px #FFE15A,0 3px 0 rgba(0,0,0,.15);opacity:1}
 .lineup{width:100%;max-width:1060px;background:rgba(255,255,255,.75);border:3px solid #fff;border-radius:20px;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;box-shadow:0 6px 16px rgba(60,40,10,.12)}
 .lineup .side{display:flex;align-items:center;gap:4px}
 .lineup .vs{font-weight:900;font-size:22px;color:var(--orange);-webkit-text-stroke:3px #fff;paint-order:stroke fill}
@@ -458,6 +464,7 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
       <li><b>生命</b>：随机 +100~300 最大生命并立即回血（最多 6 级）</li>
       <li>点击装备按钮，或按 <span class="kbd">1</span>~<span class="kbd">5</span> 快速购买</li>
     </ul>
+    <p><b>皮肤</b>：在选人界面可为英雄切换配色外观（经典 / 夜影 / 曙光），纯装饰不影响数值，选择会自动保存。</p>
     <h3>手机 / 平板操作</h3>
     <ul>
       <li>左半屏<b>按住拖动</b>：虚拟摇杆移动</li>
@@ -571,7 +578,7 @@ const HEROES=[
  {name:"蛋小黑",role:"忍者",color:"#4A5160",dark:"#2E3440",light:"#8A94A6",rc:"#5A6B8C",hp:340,spd:268,
   atk:{kind:"dualslash",dmg:48,cd:.8,range:150,arc:2.0,knock:70},atkDesc:"咸鱼双刀：双持咸鱼近身连斩两下，两下造成相同伤害",
   skill:{key:"stealth",name:"影遁",cd:7,desc:"隐身加速 2 秒；现身首击化为「强普」，伤害大幅提升并击晕目标"},
-  ult:{key:"scarebox",name:"惊吓箱",desc:"投掷惊吓箱，落地后弹开，惊吓并控住范围内敌人"},stats:[2,4,5]},
+  ult:{key:"scarebox",name:"惊吓箱",desc:"在脚下放置惊吓箱，短暂延迟后爆开，控住并击退周围敌人"},stats:[2,4,5]},
  {name:"蛋小粉",role:"法师",color:"#FF8FB8",dark:"#DE5A8D",light:"#FFCFE0",rc:"#FF6FA5",hp:300,spd:228,
   atk:{kind:"mark",dmg:28,cd:.7,range:430,pspd:600},atkDesc:"标记键：射出爱心标记敌人，最多叠 3 层",
   skill:{key:"detonate",name:"爆炸键",cd:5,desc:"引爆附近敌人身上的标记，每层造成 80 点爆炸伤害"},
@@ -675,7 +682,7 @@ const G={
   screen:"start",paused:false,over:false,now:0,intro:0,time:150,endDelay:0,winner:null,
   eggs:[],stars:[],projs:[],bombs:[],boxes:[],zones:[],fx:[],parts:[],texts:[],feed:[],
   hold:{team:null,t:0},shake:0,hitstop:0,spawnT:1.5,pads:[],cam:{x:CENTER.x,y:CENTER.y},
-  diff:store.get("diff",1),heroIdx:store.get("hero",0),lineup:null,ann:null,last30:false,
+  diff:store.get("diff",1),heroIdx:store.get("hero",0),skins:store.get("skins",[]),lineup:null,ann:null,last30:false,
   record:store.get("record",{w:0,l:0,d:0}),tipsShown:{},player:null,cdShown:0
 };
 const VIEW={w:0,h:0,dpr:1,scale:1};
@@ -684,13 +691,23 @@ let floorCv=null;
 
 /* ---------------- 角色实体 ---------------- */
 let EID=0;
-function makeEgg(team,heroIdx,name,isPlayer,spawnIdx){
-  const h=HEROES[heroIdx],d=DIFFS[G.diff];
+/* ---------------- 皮肤（配色方案） ---------------- */
+const SKINS=[{n:"经典"},{n:"夜影",t:"#232a55",dt:"#0e1230",lt:"#6a74b8",rt:"#2b2d6b",m:.5},{n:"曙光",t:"#ffd27a",dt:"#c98a2e",lt:"#fff0c8",rt:"#e0a93a",m:.45}];
+function _hex(x){x=x.replace("#","");if(x.length===3)x=x.split("").map(c=>c+c).join("");return [parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];}
+function hexMix(a,b,t){const pa=_hex(a),pb=_hex(b),c=i=>Math.round(pa[i]+(pb[i]-pa[i])*t);return "#"+((1<<24)+(c(0)<<16)+(c(1)<<8)+c(2)).toString(16).slice(1);}
+function skinPal(h,i){const s=SKINS[i];if(!s||i===0)return{color:h.color,dark:h.dark,light:h.light,rc:h.rc};
+  return{color:hexMix(h.color,s.t,s.m),dark:hexMix(h.dark,s.dt,s.m),light:hexMix(h.light,s.lt,s.m*.8),rc:hexMix(h.rc,s.rt,s.m)};}
+function skinOf(hi){return (G.skins&&G.skins[hi])||0;}
+function heroFor(hi,skin){const h0=HEROES[hi];if(!skin)return h0;return Object.assign({},h0,skinPal(h0,skin));}
+
+function makeEgg(team,heroIdx,name,isPlayer,spawnIdx,skin){
+  skin=skin||0;
+  const h=heroFor(heroIdx,skin),d=DIFFS[G.diff];
   const enemy=team==="red";
   const hp=Math.round(h.hp*(enemy?d.hp:1));
   const sp=SPAWNS[team][spawnIdx%3];
   return{
-    id:EID++,team,hero:h,hi:heroIdx,name,isPlayer:!!isPlayer,
+    id:EID++,team,hero:h,hi:heroIdx,skin,name,isPlayer:!!isPlayer,
     x:sp[0]*T+T/2,y:sp[1]*T+T/2,vx:0,vy:0,r:20,dir:team==="blue"?0:Math.PI,aim:team==="blue"?0:Math.PI,
     hp,maxHp:hp,spd:h.spd,dead:false,respawnT:0,invuln:2,
     shield:0,shieldT:0,stealth:0,reveal:0,flash:0,hurtT:0,attackT:0,walk:0,blinkT:rand(1,4),
@@ -832,14 +849,15 @@ function fireAttack(e,ang,point){
     }
   }else if(a.kind==="dualslash"){
     for(let hit=0;hit<2;hit++){
-      slashFx(e.x,e.y-16,ang+(hit?0.55:-0.55),1.5,a.range,e.hero.light);
+      slashFx(e.x,e.y-16,ang+(hit?0.55:-0.55),1.5,a.range,emp?"#FFD84D":e.hero.light);
       for(const o of G.eggs){
         if(o.team===e.team||o.dead)continue;
         const d=dist(e.x,e.y,o.x,o.y);
         if(d<a.range+o.r&&Math.abs(angDiff(angTo(e.x,e.y,o.x,o.y),ang))<a.arc/2)
-          dealDamage(e,o,dmg,{knock:a.knock||70});
+          dealDamage(e,o,dmg,{knock:emp?170:(a.knock||70),stun:emp?.6:0});
       }
     }
+    if(emp){G.shake=Math.max(G.shake,6);G.hitstop=Math.max(G.hitstop,.05);}
     AU.tone(720,540,.1,"square",.12);
   }else if(a.kind==="gravbomb"){
     const d=Math.min(dist(e.x,e.y,point.x,point.y),a.range);
@@ -997,12 +1015,10 @@ function castUlt(e,point){
   addText(e.x,e.y-96,e.hero.ult.name+"!","#FFE15A",20);
   if(k==="spin"){e.spin={t:.95,next:0};}
   else if(k==="scarebox"){
-    const tgt=nearestEnemy(e,520,true);
-    const cx=point?point.x:(tgt?tgt.x:e.x+Math.cos(e.aim)*240),cy=point?point.y:(tgt?tgt.y:e.y+Math.sin(e.aim)*240);
-    const d=Math.min(dist(e.x,e.y,cx,cy),440),a=angTo(e.x,e.y,cx,cy);
-    let tx=clamp(e.x+Math.cos(a)*d,T+30,(MW-1)*T-30),ty=clamp(e.y+Math.sin(a)*d,T+30,(MH-1)*T-30);
-    if(solidAt(tx,ty)){const t=nearestFreeTile(tileOf(tx,ty));tx=t.x*T+T/2;ty=t.y*T+T/2;}
-    G.boxes.push({x0:e.x,y0:e.y,x1:tx,y1:ty,t:0,dur:.5+d/1100,phase:"fly",fuse:.55,r:150,dmg:120,team:e.team,src:e,rot:rand(0,TAU)});
+    // 近战：在脚下放置惊吓箱，短暂延迟后爆开，控住周围敌人
+    G.boxes.push({x0:e.x,y0:e.y,x1:e.x,y1:e.y,t:0,dur:.26,phase:"fly",fuse:.4,r:195,dmg:130,team:e.team,src:e,rot:rand(0,TAU)});
+    e.invuln=Math.max(e.invuln,.4);
+    addText(e.x,e.y-96,"脚下放箱!","#C9B7F6",15);
     AU.tone(420,760,.2,"square",.1);
   }
   else if(k==="wind"){
@@ -1083,7 +1099,7 @@ function castUlt(e,point){
     if(live){const c=e.clone;c.cloneT=12;c.hp=Math.min(c.maxHp,c.hp+c.maxHp*.5);c.x=e.x+40;c.y=e.y;
       burst(c.x,c.y-20,"#C9B8FF",14,200,6,"star");addText(e.x,e.y-96,"分身强化!","#C9B8FF",18);}
     else{
-      const c=makeEgg(e.team,e.hi,e.name+"·分身",false,irand(0,2));
+      const c=makeEgg(e.team,e.hi,e.name+"·分身",false,irand(0,2),e.skin);
       c.isClone=true;c.cloneT=12;c.summoner=e;c.maxHp=Math.round(c.maxHp*.6);c.hp=c.maxHp;c.dmgMult*=.8;c.charge=0;c.invuln=.6;
       c.x=e.x+40;c.y=e.y;
       G.eggs.push(c);e.clone=c;
@@ -1207,7 +1223,8 @@ function aiThink(e){
     else if(k==="box"){if(hpPct<.5)castUlt(e,null);}
     else if(k==="lostheart"){if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<230)castUlt(e,null);}
     else if(k==="clone"){if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<520)castUlt(e,null);}
-    else if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<(k==="entrance"||k==="scarebox"?460:(k==="wind"?280:250)))castUlt(e,{x:enemy.x,y:enemy.y});
+    else if(k==="scarebox"){if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<210)castUlt(e,null);}
+    else if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<(k==="entrance"?460:(k==="wind"?280:250)))castUlt(e,{x:enemy.x,y:enemy.y});
   }
 }
 function tryAISkill(e,ang,pt){castSkill(e,ang,pt);}
@@ -1361,8 +1378,9 @@ function startMatch(){
   G.pads=PADS.map(p=>({x:p.x,y:p.y,active:true,t:0}));
   G.intro=3.6;G.cdShown=0;
   genLineup();
-  G.lineup.blue.forEach((m,i)=>G.eggs.push(makeEgg("blue",m.h,m.name,m.player,i)));
-  G.lineup.red.forEach((m,i)=>G.eggs.push(makeEgg("red",m.h,m.name,false,i)));
+  const rndSkin=()=>Math.random()<.5?0:irand(1,SKINS.length-1);
+  G.lineup.blue.forEach((m,i)=>G.eggs.push(makeEgg("blue",m.h,m.name,m.player,i,m.player?skinOf(m.h):rndSkin())));
+  G.lineup.red.forEach((m,i)=>G.eggs.push(makeEgg("red",m.h,m.name,false,i,rndSkin())));
   G.player=G.eggs.find(e=>e.isPlayer);
   G.cam.x=G.player.x;G.cam.y=G.player.y;
   IN.atkHeld=false;IN.skillReq=null;IN.ultReq=false;IN.drag=null;IN.joy={id:null,bx:0,by:0,dx:0,dy:0};
@@ -2377,7 +2395,7 @@ function drawEggBody(c,e,t,portrait){
   c.restore();
 }
 function drawAccessory(c,h,e,t){
-  const hi=HEROES.indexOf(h);
+  const hi=(e&&e.hi!=null)?e.hi:HEROES.indexOf(h);
   c.lineCap="round";
   if(hi===0){
     c.strokeStyle=h.dark;c.lineWidth=3.4;
@@ -2748,7 +2766,7 @@ function portrait(cv,hi,size){
   const s=size/72;c.scale(s,s);
   c.fillStyle="rgba(60,40,10,.15)";c.beginPath();c.ellipse(0,6,20,7,0,0,TAU);c.fill();
   c.translate(0,-26);
-  drawEggBody(c,{hero:HEROES[hi],dir:-.4,aim:-.4,walk:0,blinkT:9,attackT:0,hurtT:0,flash:0,stealth:0,scale:1,id:hi},1.2+hi,true);
+  drawEggBody(c,{hero:heroFor(hi,skinOf(hi)),hi:hi,dir:-.4,aim:-.4,walk:0,blinkT:9,attackT:0,hurtT:0,flash:0,stealth:0,scale:1,id:hi},1.2+hi,true);
   c.restore();
 }
 function buildMascots(){
@@ -2781,7 +2799,11 @@ function buildSelect(){
     '<div class="skill-item"><span class="tag" style="background:#FF9F2E">普攻</span><div><b>普通攻击</b><p>'+h.atkDesc+'</p></div></div>'+
     '<div class="skill-item"><span class="tag" style="background:#2E86E5">技能</span><div><b>'+h.skill.name+' · '+h.skill.cd+'秒</b><p>'+h.skill.desc+'</p></div></div>'+
     '<div class="skill-item"><span class="tag" style="background:#FF4F93">必杀</span><div><b>'+h.ult.name+'</b><p>'+h.ult.desc+'</p></div></div>'+
+    '<div class="skin-row"><span class="tag" style="background:#7C4DFF">皮肤</span><div class="swatches">'+
+      SKINS.map((s,i)=>{const pal=skinPal(h,i);return '<button class="sw'+(skinOf(G.heroIdx)===i?" on":"")+'" data-s="'+i+'" style="background:linear-gradient(135deg,'+pal.color+','+pal.dark+')"><span>'+s.n+'</span></button>';}).join("")+
+    '</div></div>'+
     '</div>';
+  document.querySelectorAll("#hero-detail .sw").forEach(b=>b.onclick=()=>{const i=+b.dataset.s;G.skins[G.heroIdx]=i;store.set("skins",G.skins);AU.click();buildSelect();});
   portrait($("hd-cv"),G.heroIdx,116);
   document.querySelectorAll("#diff-pills button").forEach(b=>b.classList.toggle("on",+b.dataset.d===G.diff));
   renderLineup();
