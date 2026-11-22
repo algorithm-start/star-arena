@@ -569,7 +569,7 @@ const HEROES=[
   skill:{key:"roll",name:"滚动",cd:5,desc:"向前滚动冲撞，撞飞沿途敌人并造成伤害（可拖动瞄准）"},
   ult:{key:"spin",name:"旋风斩",desc:"高速旋转斩击，持续切割周围敌人，结束时强力击飞"},stats:[3,3,3]},
  {name:"蛋小黑",role:"忍者",color:"#4A5160",dark:"#2E3440",light:"#8A94A6",rc:"#5A6B8C",hp:340,spd:268,
-  atk:{kind:"fish",dmg:60,cd:.7,range:360,pspd:560},atkDesc:"投掷咸鱼：甩出一条咸鱼远程砸击",
+  atk:{kind:"dualslash",dmg:48,cd:.8,range:150,arc:2.0,knock:70},atkDesc:"咸鱼双刀：双持咸鱼近身连斩两下，两下造成相同伤害",
   skill:{key:"stealth",name:"影遁",cd:7,desc:"隐身加速 2 秒；现身首击化为「强普」，伤害大幅提升并击晕目标"},
   ult:{key:"scarebox",name:"惊吓箱",desc:"投掷惊吓箱，落地后弹开，惊吓并控住范围内敌人"},stats:[2,4,5]},
  {name:"蛋小粉",role:"法师",color:"#FF8FB8",dark:"#DE5A8D",light:"#FFCFE0",rc:"#FF6FA5",hp:300,spd:228,
@@ -830,6 +830,17 @@ function fireAttack(e,ang,point){
       if(d<a.range+o.r&&Math.abs(angDiff(angTo(e.x,e.y,o.x,o.y),ang))<a.arc/2)
         dealDamage(e,o,dmg,{knock:a.knock||90});
     }
+  }else if(a.kind==="dualslash"){
+    for(let hit=0;hit<2;hit++){
+      slashFx(e.x,e.y-16,ang+(hit?0.55:-0.55),1.5,a.range,e.hero.light);
+      for(const o of G.eggs){
+        if(o.team===e.team||o.dead)continue;
+        const d=dist(e.x,e.y,o.x,o.y);
+        if(d<a.range+o.r&&Math.abs(angDiff(angTo(e.x,e.y,o.x,o.y),ang))<a.arc/2)
+          dealDamage(e,o,dmg,{knock:a.knock||70});
+      }
+    }
+    AU.tone(720,540,.1,"square",.12);
   }else if(a.kind==="gravbomb"){
     const d=Math.min(dist(e.x,e.y,point.x,point.y),a.range);
     const tx=e.x+Math.cos(ang)*d,ty=e.y+Math.sin(ang)*d;
@@ -1215,7 +1226,7 @@ function aiMove(e,dt){
   const c=ai.combat;
   if(c&&!c.dead&&visibleTo(e,c)){
     const dd=dist(e.x,e.y,c.x,c.y),a=e.hero.atk;
-    const melee=a.kind==="swipe"||a.kind==="cleave";
+    const melee=a.kind==="swipe"||a.kind==="cleave"||a.kind==="dualslash";
     const want=melee?a.range*.6:a.range*.8;
     if(dd<want*.75&&!melee){const aw=angTo(c.x,c.y,e.x,e.y);mx+=Math.cos(aw)*.8;my+=Math.sin(aw)*.8;}
     const pa=angTo(e.x,e.y,c.x,c.y)+Math.PI/2*ai.strafe;
@@ -2377,7 +2388,11 @@ function drawAccessory(c,h,e,t){
     c.strokeStyle="#2A3040";c.lineWidth=3;
     c.beginPath();c.moveTo(18,-18);c.quadraticCurveTo(28,-14,30,-6);c.stroke();
     c.beginPath();c.moveTo(18,-18);c.quadraticCurveTo(30,-20,33,-14);c.stroke();
-    c.save();c.translate(20,5);c.rotate(e.attackT>0?-.9:.4);
+    c.save();c.translate(20,5);c.rotate(e.attackT>0?-.95:.4);
+    if(e.bonusNext){c.fillStyle="rgba(255,216,77,"+(.3+Math.sin(t*8)*.15)+")";c.beginPath();c.ellipse(0,-4,13,17,0,0,TAU);c.fill();}
+    drawFish(c,.85,e.bonusNext);
+    c.restore();
+    c.save();c.translate(-20,5);c.scale(-1,1);c.rotate(e.attackT>0?-.95:.4);
     if(e.bonusNext){c.fillStyle="rgba(255,216,77,"+(.3+Math.sin(t*8)*.15)+")";c.beginPath();c.ellipse(0,-4,13,17,0,0,TAU);c.fill();}
     drawFish(c,.85,e.bonusNext);
     c.restore();
@@ -2623,7 +2638,7 @@ function drawAimPreview(t){
   if(ang==null||kind==null)return;
   ctx.save();ctx.globalAlpha=.5;
   const col="#FFFFFF";
-  if(kind==="swipe"||kind==="cleave"){
+  if(kind==="swipe"||kind==="cleave"||kind==="dualslash"){
     const a=p.hero.atk;
     ctx.fillStyle="rgba(255,255,255,.25)";ctx.strokeStyle=col;ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(p.x,p.y-16);ctx.arc(p.x,p.y-16,a.range,ang-a.arc/2,ang+a.arc/2);ctx.closePath();ctx.fill();ctx.stroke();
@@ -2691,7 +2706,7 @@ function syncHud(){
     $("btn-atk").querySelector(".cd").style.setProperty("--p",p.reload>0?p.reload/atkCd:0);
     const emp=p.bonusNext;
     $("btn-atk").classList.toggle("emp",emp);
-    $("btn-atk").querySelector(".lab").textContent=emp?"强普":(p.hi===2?"标记":p.hi===3?"引力":p.hi===0?"剑气":p.hi===4?"爱心":p.hi===6?"小拳":p.hi===7?"莲刺":p.hi===8?"礼花":p.hi===9?"拐杖":p.hi===10?"手雷":"攻击");
+    $("btn-atk").querySelector(".lab").textContent=emp?"强普":(p.hi===2?"标记":p.hi===3?"引力":p.hi===0?"剑气":p.hi===1?"双刀":p.hi===4?"爱心":p.hi===6?"小拳":p.hi===7?"莲刺":p.hi===8?"礼花":p.hi===9?"拐杖":p.hi===10?"手雷":"攻击");
     const skCd=p.hero.skill.cd*p.cdMult;
     const sk=$("btn-skill");
     const chain=p.iaiChain>G.now||(p.hi===6&&p.chargeChain>G.now);
