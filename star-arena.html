@@ -606,7 +606,7 @@ const HEROES=[
   ult:{key:"lostheart",name:"失心领域",desc:"展开失心领域，范围内敌人减速、持续受伤并失心混乱"},stats:[4,3,3]},
  {name:"雷霆太奶",role:"法师",color:"#9B6BFF",dark:"#5E3ABF",light:"#DCCBFF",rc:"#7C4DFF",hp:340,spd:236,
   atk:{kind:"grenade",dmg:42,cd:.95,range:360,aoe:92,spread:.18},atkDesc:"双雷手榴弹：一次抛出两枚手雷，落点范围爆炸（可拖动瞄准）",
-  skill:{key:"thunder",name:"雷霆双落",cd:7,desc:"召唤两道雷电劈向敌人，造成伤害并定身控住"},
+  skill:{key:"thunder",name:"雷霆双落",cd:7,desc:"自动锁定最近的 2 名敌人降下雷电，造成伤害并定身控住（无需瞄准）"},
   ult:{key:"clone",name:"召唤分身",desc:"召唤一个自己的分身协同作战，持续 12 秒"},stats:[2,5,3]}
 ];
 const NAMES=["糯米团","小布丁","汤圆","奶盖","芋圆","麻薯","辣椒酱","小煤球","番茄酱","果冻","泡芙","豆豆"];
@@ -969,14 +969,11 @@ function castSkill(e,ang,point){
     e.aim=ang;e.dir=ang;e.attackT=.25;
     AU.tone(500,900,.12,"square",.12);
   }else if(k==="thunder"){
-    e.aim=ang;e.dir=ang;
     const cand=G.eggs.filter(o=>o.team!==e.team&&!o.dead&&!o.attach&&!o.box&&dist(e.x,e.y,o.x,o.y)<460)
-      .sort((a,b)=>dist(e.x,e.y,a.x,a.y)-dist(e.x,e.y,b.x,b.y));
-    let pts;
-    if(point&&point.x!=null){pts=[point];if(cand[0]&&dist(cand[0].x,cand[0].y,point.x,point.y)>50)pts.push({x:cand[0].x,y:cand[0].y});}
-    else pts=cand.slice(0,2).map(o=>({x:o.x,y:o.y}));
-    if(!pts.length)pts=[{x:e.x+Math.cos(ang)*260,y:e.y+Math.sin(ang)*260}];
-    pts.slice(0,2).forEach(pt=>thunderStrike(pt.x,pt.y,70,e.team,e,74,1.2));
+      .sort((a,b)=>dist(e.x,e.y,a.x,a.y)-dist(e.x,e.y,b.x,b.y)).slice(0,2);
+    if(!cand.length){addText(e.x,e.y-92,"范围内没有敌人","#BFE9FF",13);e.skillCd=0;return false;}
+    e.aim=angTo(e.x,e.y,cand[0].x,cand[0].y);e.dir=e.aim;
+    cand.forEach(o=>thunderStrike(o.x,o.y,70,e.team,e,74,1.2));
     addText(e.x,e.y-92,"雷霆双落!","#BFE9FF",16);
   }
   return true;
@@ -2618,10 +2615,10 @@ function drawAimPreview(t){
     else{const k=p.hero.skill.key;
       if(k==="charge"&&p.chargeChain>G.now){kind="ring";range=210;}
       else{kind=(k==="roll"||k==="iai"||k==="rose"||k==="charge")?"dash":(k==="detonate"||k==="attach")?"ring":(k==="laser"?"line":(k==="gift"?"gift":(k==="hook"?"hook":(k==="thunder"?"thunder":null))));range=k==="iai"?260:(k==="detonate"?360:(k==="laser"?520:(k==="attach"?320:(k==="charge"?300:(k==="gift"?420:(k==="hook"?420:(k==="thunder"?420:220)))))));}}
-    if(kind==="gravbomb"||kind==="grenade"||kind==="thunder"){const d=Math.min(range,Math.max(90,l*2.2));point={x:p.x+Math.cos(ang)*d,y:p.y+Math.sin(ang)*d};}
+    if(kind==="gravbomb"||kind==="grenade"){const d=Math.min(range,Math.max(90,l*2.2));point={x:p.x+Math.cos(ang)*d,y:p.y+Math.sin(ang)*d};}
   }else if(IN.atkHeld&&G.now-IN.mouseT<4&&matchMedia("(pointer:fine)").matches){
     ang=p.aim;kind=p.hero.atk.kind;range=p.hero.atk.range;
-    if(kind==="gravbomb"||kind==="grenade"||kind==="thunder")point=screenToWorld(IN.mouseX,IN.mouseY);
+    if(kind==="gravbomb"||kind==="grenade")point=screenToWorld(IN.mouseX,IN.mouseY);
   }
   if(ang==null||kind==null)return;
   ctx.save();ctx.globalAlpha=.5;
@@ -2630,14 +2627,21 @@ function drawAimPreview(t){
     const a=p.hero.atk;
     ctx.fillStyle="rgba(255,255,255,.25)";ctx.strokeStyle=col;ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(p.x,p.y-16);ctx.arc(p.x,p.y-16,a.range,ang-a.arc/2,ang+a.arc/2);ctx.closePath();ctx.fill();ctx.stroke();
-  }else if(kind==="gravbomb"||kind==="grenade"||kind==="thunder"){
+  }else if(kind==="gravbomb"||kind==="grenade"){
     const d=Math.min(range,dist(p.x,p.y,point.x,point.y));
     const tx=p.x+Math.cos(ang)*d,ty=p.y+Math.sin(ang)*d;
-    const r=kind==="thunder"?74:p.hero.atk.aoe;
+    const r=p.hero.atk.aoe;
     ctx.strokeStyle="#7FE3FF";ctx.lineWidth=2.5;ctx.setLineDash([8,7]);
     ctx.beginPath();ctx.moveTo(p.x,p.y-16);ctx.lineTo(tx,ty);ctx.stroke();
     ctx.beginPath();ctx.arc(tx,ty,r,0,TAU);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle="rgba(79,183,255,.16)";ctx.beginPath();ctx.arc(tx,ty,r,0,TAU);ctx.fill();
+  }else if(kind==="thunder"){
+    const cand=G.eggs.filter(o=>o.team!==p.team&&!o.dead&&!o.attach&&!o.box&&dist(p.x,p.y,o.x,o.y)<460)
+      .sort((a,b)=>dist(p.x,p.y,a.x,a.y)-dist(p.x,p.y,b.x,b.y)).slice(0,2);
+    ctx.strokeStyle="#BFE9FF";ctx.lineWidth=2.5;ctx.setLineDash([6,6]);ctx.lineDashOffset=-t*30;
+    for(const o of cand){ctx.beginPath();ctx.arc(o.x,o.y-14,30+Math.sin(t*8)*3,0,TAU);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(o.x-9,o.y-14);ctx.lineTo(o.x+9,o.y-14);ctx.moveTo(o.x,o.y-23);ctx.lineTo(o.x,o.y-5);ctx.stroke();}
+    ctx.setLineDash([]);
   }else if(kind==="line"){
     const ex=p.x+Math.cos(ang)*range,ey=p.y-16+Math.sin(ang)*range;
     ctx.save();ctx.translate(p.x,p.y-16);ctx.rotate(ang);
