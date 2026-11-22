@@ -222,6 +222,15 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
 @keyframes ultpulse{50%{transform:scale(1.12);filter:brightness(1.2)}}
 #btn-ult{right:4px;bottom:4px}
 #ult-pct{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:#fff;background:rgba(40,30,15,.6);padding:1px 8px;border-radius:999px;pointer-events:none}
+#equip-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;display:flex;gap:8px}
+.eqbtn{display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:14px;border:3px solid #fff;background:linear-gradient(#ffffff,#e7eef8);box-shadow:0 4px 0 rgba(0,0,0,.16);font-weight:900;font-size:12px;color:#33415c;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .08s}
+.eqbtn:active{transform:scale(.94)}
+.eqbtn svg{width:18px;height:18px}
+.eqbtn .lv{min-width:16px;text-align:center;background:#33415c;color:#fff;border-radius:8px;padding:1px 4px;font-size:11px}
+.eqbtn .cost{color:#B8860B;font-size:11px;font-weight:900}
+.eqbtn.atk svg{color:#F04A3E}.eqbtn.def svg{color:#2E86E5}.eqbtn.util svg{color:#33A862}
+.eqbtn.disabled{opacity:.5;filter:grayscale(.5)}
+.eqbtn.afford{border-color:#FFE15A;box-shadow:0 4px 0 rgba(0,0,0,.16),0 0 10px rgba(255,225,90,.75)}
 .gbtn.disabled{filter:grayscale(.7) brightness(.8)}
 #btn-skill.chain{background:radial-gradient(circle at 35% 28%,#FFD84D,#FF6B5A);animation:chainpulse .5s infinite}
 @keyframes chainpulse{50%{transform:scale(1.1);filter:brightness(1.25)}}
@@ -301,6 +310,10 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
   #screen-start .screen-inner{gap:16px}
   .hero-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
   #controls{transform:scale(1.1);transform-origin:bottom right}
+}
+/* 竖屏手机/平板：装备栏移到左侧竖排，避开右下技能区 */
+@media (orientation:portrait) and (pointer:coarse){
+  #equip-bar{left:8px;right:auto;bottom:auto;top:50%;transform:translateY(-50%);flex-direction:column;gap:6px}
 }
 </style>
 </head>
@@ -393,13 +406,18 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
   <div id="killfeed"></div>
   <div id="respawn" class="hide"></div>
   <div id="countdown" class="hide"></div>
-  <div id="keyhints"><span class="kbd">WASD</span> 移动 · <span class="kbd">鼠标</span> 瞄准 · <span class="kbd">左键/J</span> 攻击 · <span class="kbd">K</span> 技能 · <span class="kbd">空格</span> 必杀技 · <span class="kbd">Esc</span> 暂停</div>
+  <div id="keyhints"><span class="kbd">WASD</span> 移动 · <span class="kbd">鼠标</span> 瞄准 · <span class="kbd">左键/J</span> 攻击 · <span class="kbd">K</span> 技能 · <span class="kbd">空格</span> 必杀技 · <span class="kbd">1/2/3</span> 装备 · <span class="kbd">Esc</span> 暂停</div>
   <div id="joy-base" class="hide"></div>
   <div id="joy-knob" class="hide"></div>
   <div id="controls">
     <div id="ult-wrap"><button class="gbtn" id="btn-ult"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 4-3 5.5-3 9a3.5 3.5 0 007 .2C16 8.5 14 7 15 4c3 2.5 5 5.6 5 9a8 8 0 11-16 0c0-5 4.5-8 8-11z"/></svg><span class="lab">必杀技</span></button><span id="ult-pct">0%</span></div>
     <button class="gbtn" id="btn-skill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg><span class="lab">技能</span><span class="cd"></span><span class="cdtxt"></span></button>
     <button class="gbtn" id="btn-atk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l2.4 6.2L21 5l-3.4 5.6L24 12l-6.4 1.4L21 19l-6.6-2.2L12 23l-2.4-6.2L3 19l3.4-5.6L0 12l6.4-1.4L3 5l6.6 2.2z"/></svg><span class="lab">攻击</span><span class="cd"></span></button>
+  </div>
+  <div id="equip-bar">
+    <button class="eqbtn atk" id="eq-atk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2l4 4-2 2-1-1-6 6 1 1-2 2-4-4 2-2 1 1 6-6-1-1z"/><path d="M19 15l2 2-4 4-2-2z"/></svg><span class="nm">攻击</span><span class="lv">0</span><span class="cost">2★</span></button>
+    <button class="eqbtn def" id="eq-def"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l8 3v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5z"/></svg><span class="nm">防御</span><span class="lv">0</span><span class="cost">2★</span></button>
+    <button class="eqbtn util" id="eq-util"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg><span class="nm">功能</span><span class="lv">0</span><span class="cost">2★</span></button>
   </div>
 </div>
 
@@ -428,6 +446,14 @@ button{font-family:var(--font);cursor:pointer;border:none;background:none;color:
     <h2>玩法说明</h2>
     <h3>获胜目标</h3>
     <p>中央的<b>星能矿井</b>会不断喷出星星，击败敌人也会掉落星星。拾取星星携带在身上，<b>率先集齐 10 颗并守住 15 秒</b>即可获胜！时间结束时星星多的队伍获胜。被击败会掉落身上所有星星。</p>
+    <h3>装备（星星购买）</h3>
+    <p>底部装备栏可用<b>星星</b>购买强化，每件花费 <b>2 颗星星</b>（会减少你身上的星星，需要在"抢分"与"变强"之间取舍）。阵亡后装备效果仍保留。</p>
+    <ul>
+      <li><b>攻击</b>：+12% 物理伤害（最多 8 级）</li>
+      <li><b>防御</b>：+7% 减伤（最多 6 级）</li>
+      <li><b>功能</b>：+5% 移速、-6% 技能冷却（最多 6 级）</li>
+      <li>点击装备按钮，或按 <span class="kbd">1</span>/<span class="kbd">2</span>/<span class="kbd">3</span> 快速购买</li>
+    </ul>
     <h3>手机 / 平板操作</h3>
     <ul>
       <li>左半屏<b>按住拖动</b>：虚拟摇杆移动</li>
@@ -664,6 +690,7 @@ function makeEgg(team,heroIdx,name,isPlayer,spawnIdx){
     z:0,vz:0,iaiChain:0,chargeChain:0,entrance:null,mark:0,markT:0,attach:null,poly:null,guard:0,ridden:false,rose:null,suplex:null,box:null,cdBoost:0,hook:null,confuse:0,
     stun:0,slowT:0,speedT:0,bonusNext:false,carried:0,scale:1,moving:false,
     dmgMult:enemy?d.dmg:(isPlayer?1:.9),cdMult:enemy?d.cd:1,
+    dr:0,eq:{atk:0,def:0,util:0},
     stats:{k:0,d:0,s:0,dmg:0,heal:0},
     ai:{think:rand(0,.3),path:null,pathT:0,target:null,combat:null,strafe:Math.random()<.5?1:-1,wander:rand(0,TAU)}
   };
@@ -702,6 +729,7 @@ function dealDamage(src,tgt,dmg,opts){
   opts=opts||{};
   if(tgt.dead||tgt.invuln>0||tgt.attach||tgt.box||G.over)return;
   dmg=Math.round(dmg*(src?src.dmgMult:1));
+  if(tgt.dr>0)dmg=Math.max(1,Math.round(dmg*(1-tgt.dr)));
   if(tgt.guard>0)dmg=Math.round(dmg*.5);
   if(tgt.shield>0){const ab=Math.min(tgt.shield,dmg);tgt.shield-=ab;dmg-=ab;addText(tgt.x,tgt.y-70,"-"+ab,"#7FE8FF",13);}
   if(dmg>0){
@@ -753,6 +781,22 @@ function aoe(x,y,r,dmg,team,opts){
     if(dist(x,y,e.x,e.y-14)<r+e.r)dealDamage(opts.src,e,dmg,opts);}
 }
 function aoeHeal(x,y,r,amt,team,src){for(const e of G.eggs){if(e.team!==team||e.dead)continue;if(dist(x,y,e.x,e.y)<r+e.r)heal(src,e,amt);}}
+
+/* ---------------- 装备（用星星购买，每件 2 颗） ---------------- */
+const EQ_COST=2,EQ_CAP={atk:8,def:6,util:6};
+function buyEquip(e,kind){
+  if(G.screen!=="match"||G.over||!e||e.dead||e.stun>0)return false;
+  if(e.carried<EQ_COST||e.eq[kind]>=EQ_CAP[kind])return false;
+  e.carried-=EQ_COST;
+  if(kind==="atk"){e.dmgMult+=0.12;addText(e.x,e.y-92,"攻击 +12%","#FF6B5A",15);}
+  else if(kind==="def"){e.dr=Math.min(0.5,e.dr+0.07);addText(e.x,e.y-92,"防御 +7%","#4FB7FF",15);}
+  else{e.spd=Math.round(e.spd*1.05);e.cdMult=Math.max(0.6,e.cdMult*0.94);addText(e.x,e.y-92,"功能 强化","#5FD98F",15);}
+  e.eq[kind]++;
+  ring(e.x,e.y-16,10,54,"#FFE15A",.4,6);burst(e.x,e.y-20,"#FFE15A",10,170,5,"star");
+  AU.tone(660,980,.12,"triangle",.12);AU.beep(true);
+  if(e.isPlayer){bumpPill("blue");syncHud();}
+  return true;
+}
 
 function fireAttack(e,ang,point){
   const a=e.hero.atk;if(e.reload>0||e.dead||e.stun>0||e.poly||e.rose||e.box||e.suplex||e.hook||e.confuse>0)return false;
@@ -1083,6 +1127,13 @@ function aiThink(e){
     for(const o of G.eggs)if(o.team===e.team&&o!==e&&!o.dead&&!o.attach&&!o.box){const d=dist(e.x,e.y,o.x,o.y);if(d<bd&&(o.hp/o.maxHp<.85||enemy)){bd=d;ally=o;}}
     if(ally)tryAISkill(e,angTo(e.x,e.y,ally.x,ally.y),{x:ally.x,y:ally.y});
   }
+  if(!e.isPlayer&&e.carried>=6&&G.hold.team!==e.team&&teamCarried(e.team)>=12&&Math.random()<.04){
+    const role=e.hero.role;
+    const pref=(role==="坦克")?"def":(role==="辅助"||role==="控制")?"util":"atk";
+    const alt=pref==="atk"?"util":"atk";
+    const pick=e.eq[pref]<EQ_CAP[pref]?pref:(e.eq[alt]<EQ_CAP[alt]?alt:pref);
+    buyEquip(e,pick);
+  }
   if(e.charge>=100){
     const k=e.hero.ult.key;
     if(k==="polymorph"){if(enemy&&dist(e.x,e.y,enemy.x,enemy.y)<480)castUlt(e,{x:enemy.x,y:enemy.y});}
@@ -1153,6 +1204,7 @@ function bindInput(){
       if(k==="k"&&!G.paused)IN.skillReq="auto";
       if((k===" "||k==="l")&&!G.paused)IN.ultReq=true;
       if(k==="j")IN.atkHeld=true;
+      if(!G.paused&&G.player){if(k==="1")buyEquip(G.player,"atk");if(k==="2")buyEquip(G.player,"def");if(k==="3")buyEquip(G.player,"util");}
     }
     AU.unlock();AU.resume();
   });
@@ -1217,6 +1269,11 @@ function bindInput(){
     el.addEventListener("pointercancel",ev=>{IN.drag=null;IN.atkHeld=false;});
   };
   gbtn("btn-atk","atk");gbtn("btn-skill","skill");gbtn("btn-ult","ult");
+  [["eq-atk","atk"],["eq-def","def"],["eq-util","util"]].forEach(([id,kind])=>{
+    const el=$(id);
+    el.addEventListener("pointerdown",ev=>{ev.stopPropagation();ev.preventDefault();});
+    el.addEventListener("click",ev=>{ev.stopPropagation();AU.unlock();AU.resume();if(G.screen==="match"&&!G.paused&&G.player)buyEquip(G.player,kind);});
+  });
   document.addEventListener("contextmenu",ev=>{if(G.screen==="match")ev.preventDefault();});
   document.addEventListener("visibilitychange",()=>{if(document.hidden&&G.screen==="match"&&!G.over&&!G.paused)togglePause(true);});
 }
@@ -2546,6 +2603,12 @@ function syncHud(){
     uw.classList.toggle("ready",p.charge>=100);
     $("ult-pct").textContent=p.charge>=100?"就绪!":Math.ceil((100-p.charge)/100*ULT_CD)+"s";
     $("btn-ult").classList.toggle("disabled",p.charge<100);
+    const eq=p.eq;
+    for(const pair of [["eq-atk","atk"],["eq-def","def"],["eq-util","util"]]){
+      const el=$(pair[0]);el.querySelector(".lv").textContent=eq[pair[1]];
+      const afford=p.carried>=EQ_COST&&eq[pair[1]]<EQ_CAP[pair[1]]&&!p.dead;
+      el.classList.toggle("disabled",!afford);el.classList.toggle("afford",afford);
+    }
   }
   const cd=$("countdown");
   if(G.intro>0){
