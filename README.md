@@ -96,6 +96,11 @@ LICENSE           # MIT 许可证
 README.md         # 本说明
 ```
 
+## 联系方式
+
+- 微信 / QQ：496942597
+- 邮箱：[zanbu520@126.com](mailto:zanbu520@126.com)
+
 ## 许可
 
 本项目基于 [MIT License](LICENSE) 开源，可自由使用、修改与分发。
